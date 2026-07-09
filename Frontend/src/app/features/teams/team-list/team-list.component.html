@@ -1,0 +1,51 @@
+<div class="teams-page">
+  <div class="page-header">
+    <h1>Teams</h1>
+    @if (canManage) {
+      <button class="btn-primary" (click)="openCreateModal()">+ New Team</button>
+    }
+  </div>
+
+  @if (teamService.isLoading()) {
+    <p class="loading-text">Loading teams...</p>
+  } @else if (teamService.teams().length === 0) {
+    <p class="empty-text">No teams yet.</p>
+  } @else {
+    <div class="teams-grid">
+      @for (team of teamService.teams(); track team.id) {
+        <div class="team-card">
+          <a [routerLink]="['/dashboard/teams', team.id]" class="team-card-link">
+            <h3>{{ team.name }}</h3>
+            @if (team.description) {
+              <p class="team-desc">{{ team.description }}</p>
+            }
+            <span class="team-date">Created {{ team.createdAt | date: 'mediumDate' }}</span>
+          </a>
+
+          @if (canManage) {
+            <div class="team-actions">
+              <button class="icon-btn" (click)="openEditModal(team)" aria-label="Edit">✎</button>
+              @if (canDelete) {
+                <button class="icon-btn danger" (click)="confirmDelete(team)" aria-label="Delete">🗑</button>
+              }
+            </div>
+          }
+
+          @if (deletingTeamId() === team.id) {
+            <div class="confirm-box">
+              <p>Delete "{{ team.name }}"?</p>
+              <div class="confirm-actions">
+                <button class="btn-danger-sm" (click)="deleteTeam(team.id)">Delete</button>
+                <button class="btn-ghost-sm" (click)="cancelDelete()">Cancel</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (isModalOpen()) {
+  <app-team-form-modal [team]="editingTeam()" (close)="closeModal()" />
+}

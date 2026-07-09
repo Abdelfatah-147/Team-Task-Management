@@ -1,0 +1,70 @@
+<div class="modal-overlay" (click)="onCancel()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <h2>{{ isEditMode ? 'Edit Project' : 'New Project' }}</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      @if (!isEditMode && teams.length > 0) {
+        <div class="form-group">
+          <label for="teamId">Team <span style="color:red">*</span></label>
+          <select id="teamId" formControlName="teamId">
+            <option value="">— Select a Team —</option>
+            @for (team of teams; track team.id) {
+              <option [value]="team.id">{{ team.name }}</option>
+            }
+          </select>
+          @if (form.get('teamId')?.touched && form.get('teamId')?.hasError('required')) {
+            <span class="field-error">Please select a team.</span>
+          }
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="name">Project Name</label>
+        <input id="name" type="text" formControlName="name" placeholder="e.g. Mobile App Redesign" />
+        @if (form.get('name')?.touched && form.get('name')?.hasError('required')) {
+          <span class="field-error">Name is required.</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description (optional)</label>
+        <textarea id="description" formControlName="description" rows="3"
+          placeholder="What is this project about?"></textarea>
+      </div>
+
+      @if (isEditMode) {
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status" formControlName="status">
+            @for (option of statusOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startDate">Start Date (optional)</label>
+          <input type="date" id="startDate" formControlName="startDate" />
+        </div>
+        <div class="form-group">
+          <label for="endDate">End Date (optional)</label>
+          <input id="endDate" type="date" formControlName="endDate" />
+        </div>
+      </div>
+
+      @if (errorMessage()) {
+        <p class="form-error">{{ errorMessage() }}</p>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" (click)="onCancel()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Create Project') }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

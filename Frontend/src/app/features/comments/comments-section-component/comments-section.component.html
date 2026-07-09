@@ -1,0 +1,84 @@
+<div class="space-y-4">
+    <h3 class="text-base font-semibold text-gray-800">Comments</h3>
+
+    @if (isLoading()) {
+        <div class="space-y-3">
+            @for (_ of [1,2,3]; track $index) {
+                <div class="animate-pulse flex gap-3">
+                    <div class="w-8 h-8 bg-gray-200 rounded-full shrink-0"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-3 bg-gray-200 rounded w-32"></div>
+                        <div class="h-3 bg-gray-200 rounded w-full"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    } @else {
+        @if (comments().length === 0) {
+            <p class="text-sm text-gray-400 text-center py-4">No comments yet. Be the first!</p>
+        } @else {
+            <div class="space-y-3">
+                @for (comment of comments(); track comment.id) {
+                    <div class="flex gap-3 group">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
+                            {{ comment.userFullName?.charAt(0)?.toUpperCase() ?? '?' }}
+                        </div>
+
+                        <div class="flex-1 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <span class="text-xs font-semibold text-gray-800">{{ comment.userFullName }}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-400"> {{ comment.createdAt | date:'MMM d, y · h:mm a' }}</span>
+                                    @if (canDelete(comment)) {
+                                        <button (click)="confirmDelete(comment.id)"
+                                            class="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            Delete
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-700 whitespace-pre-wrap"> {{ comment.content }} </p>
+                        </div>
+
+                    </div>
+                }
+            </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex gap-3 pt-2">
+            <div class="flex-1">
+                <textarea formControlName="content" rows="2" placeholder="Write a comment..." 
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-sm resize-none"
+                    [class.border-red-400]="form.get('content')?.invalid && form.get('content')?.touched">
+                </textarea>
+                @if (errorMessage()) {
+                    <p class="text-red-500 text-xs mt-1"> {{ errorMessage() }}</p>
+                }
+            </div>
+            <button type="submit" [disabled]="isSubmitting()" 
+                class="self-start px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                {{ isSubmitting() ? 'Posting...' : 'Post'}}
+            </button>
+        </form>
+    }
+
+</div>
+
+@if (commentToDeleteId()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4">
+            <h3 class="text-lg font-bold text-gray-800">Delete Comment?</h3>
+            <p class="text-sm text-gray-500">This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button (click)="cancelDelete()"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button (click)="executeDelete()" [disabled]="isDeleting()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors">
+                    {{ isDeleting() ? 'Deleting...' : 'Delete' }}
+                </button>
+            </div>
+        </div>
+    </div>
+}

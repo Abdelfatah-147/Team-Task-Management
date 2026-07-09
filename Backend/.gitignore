@@ -1,0 +1,23 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+dist/
+.angular/
+
+# Logs
+*.log
+
+# User-specific files
+*.userosscache
+*.sln.docstates

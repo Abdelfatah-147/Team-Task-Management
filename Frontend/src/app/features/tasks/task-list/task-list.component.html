@@ -1,0 +1,168 @@
+<div class="p-6 space-y-6">
+
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <h1 class="text-2xl font-bold text-gray-900">My Tasks</h1>
+    <div class="flex items-center gap-2 flex-wrap">
+      @for (opt of statusOptions; track opt.label) {
+        <button (click)="setFilter(opt.value)"
+          [class]="filterStatus() === opt.value
+            ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white'
+            : 'px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors'">
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (_ of [1,2,3,4,5]; track $index) {
+        <div class="animate-pulse bg-gray-200 rounded-xl h-16"></div>
+      }
+    </div>
+  } @else if (filteredTasks().length === 0) {
+    <div class="text-center py-16 text-gray-400">
+      <p class="text-4xl mb-3">✅</p>
+      <p class="text-lg font-medium text-gray-600">No tasks found</p>
+    </div>
+  } @else {
+    <div class="space-y-3">
+      @for (task of filteredTasks(); track task.id) {
+        <div
+          (click)="openDrawer(task)"
+          class="flex items-center gap-4 bg-white rounded-xl border border-gray-200 px-5 py-4 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer">
+
+          <span [class]="'shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ' + getStatusClass(task.status)">
+            {{ TasksStatusLabels[task.status] }}
+          </span>
+
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate">
+              {{ task.title }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ getProjectName(task.projectId) }}</p>
+          </div>
+
+          <span [class]="'shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ' + getPriorityClass(task.priority)">
+            {{ TaskPriorityLabels[task.priority] }}
+          </span>
+
+          <span class="shrink-0 text-xs text-gray-400">
+            👤 {{ getMemberName(task.assignedToUserId) }}
+          </span>
+
+          @if (task.dueDate) {
+            <span class="shrink-0 text-xs text-gray-400">
+              📅 {{ task.dueDate | date:'MMM d' }}
+            </span>
+          }
+
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+@if (showEditModal() && taskToEdit()) {
+  <app-task-form-modal
+    [projectId]="getProjectIdForTask(taskToEdit()!)"
+    [taskToEdit]="taskToEdit()"
+    [members]="members()"
+    (modalClosed)="closeEditModal()"
+    (taskSaved)="onTaskSaved()">
+  </app-task-form-modal>
+}
+
+@if (taskToDeleteId()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4">
+      <h3 class="text-lg font-bold text-gray-800">Delete Task?</h3>
+      <p class="text-sm text-gray-500">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button (click)="cancelDelete()"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+        <button (click)="executeDelete()" [disabled]="isDeleting()"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors">
+          {{ isDeleting() ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (selectedTask()) {
+  <div class="fixed inset-0 z-40 bg-black/30" (click)="closeDrawer()"></div>
+
+  <div class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
+
+    <div class="flex items-start justify-between p-6 border-b border-gray-100">
+      <div class="flex-1 pr-4">
+        <p class="text-xs text-gray-400 mb-1">
+          {{ getProjectName(selectedTask()!.projectId) }}
+        </p>
+        <h2 class="text-lg font-bold text-gray-900 leading-tight">
+          {{ selectedTask()!.title }}
+        </h2>
+        @if (selectedTask()!.description) {
+          <p class="text-sm text-gray-500 mt-1">{{ selectedTask()!.description }}</p>
+        }
+      </div>
+      <button (click)="closeDrawer()"
+        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
+        ✕
+      </button>
+    </div>
+
+    <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
+      <span [class]="'text-xs px-2.5 py-1 rounded-full font-medium ' + getStatusClass(selectedTask()!.status)">
+        {{ TasksStatusLabels[selectedTask()!.status] }}
+      </span>
+      <span [class]="'text-xs px-2.5 py-1 rounded-full font-medium ' + getPriorityClass(selectedTask()!.priority)">
+        {{ TaskPriorityLabels[selectedTask()!.priority] }}
+      </span>
+      <span class="text-xs text-gray-500">
+        👤 {{ getMemberName(selectedTask()!.assignedToUserId) }}
+      </span>
+      @if (selectedTask()!.dueDate) {
+        <span class="text-xs text-gray-500">
+          📅 {{ selectedTask()!.dueDate | date:'MMM d, y' }}
+        </span>
+      }
+    </div>
+
+    @if (canManage()) {
+      <div class="px-6 py-3 border-b border-gray-100 flex gap-2">
+        <button
+          (click)="openEditModal(selectedTask()!)"
+          class="flex-1 px-4 py-2 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors">
+          ✏️ Edit Task
+        </button>
+        @if (canDelete()) {
+          <button
+            (click)="confirmDelete(selectedTask()!.id)"
+            class="flex-1 px-4 py-2 rounded-xl bg-red-50 text-red-500 text-xs font-semibold hover:bg-red-100 transition-colors">
+            🗑️ Delete Task
+          </button>
+        }
+      </div>
+    }
+
+    <div class="px-6 py-3 border-b border-gray-100">
+      <a [routerLink]="['/dashboard/projects', selectedTask()!.projectId]"
+         (click)="closeDrawer()"
+         class="text-xs text-blue-600 hover:underline font-medium">
+        → Go to Project
+      </a>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-6">
+      <p class="text-xs text-gray-400 text-center">
+        Open the project to see comments.
+      </p>
+    </div>
+
+  </div>
+}

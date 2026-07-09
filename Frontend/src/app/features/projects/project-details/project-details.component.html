@@ -1,0 +1,205 @@
+<div class="p-6 space-y-6">
+
+  @if (isLoadingProject()) {
+    <div class="animate-pulse h-10 bg-gray-200 rounded-xl w-64"></div>
+  } @else if (project(); as proj) {
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+          <a routerLink="/dashboard/projects" class="hover:text-blue-600 transition-colors">
+            Projects
+          </a>
+          <span>/</span>
+          <span class="text-gray-800 font-medium">{{ proj.name }}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ proj.name }}</h1>
+        @if (proj.description) {
+          <p class="text-gray-500 text-sm mt-1">{{ proj.description }}</p>
+        }
+      </div>
+      @if (canManage()) {
+        <button (click)="openCreateModal()"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
+          <span class="text-lg leading-none">＋</span> New Task
+        </button>
+      }
+    </div>
+  }
+
+  @if (isLoadingTasks()) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="animate-pulse bg-gray-200 rounded-xl h-40"></div>
+      }
+    </div>
+  } @else {
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      @for (status of statusOrder; track status) {
+        <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-3">
+
+          <div class="flex items-center justify-between mb-2">
+            <span [class]="'text-xs font-semibold px-2.5 py-1 rounded-full ' + getStatusClass(status)">
+              {{ TasksStatusLabels[status] }}
+            </span>
+            <span class="text-xs bg-white border border-gray-200 text-gray-500 rounded-full px-2 py-0.5">
+              {{ groupedByStatus()[status].length }}
+            </span>
+          </div>
+
+          @for (task of groupedByStatus()[status]; track task.id) {
+            <div
+              class="bg-white rounded-xl border border-gray-200 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              (click)="openTaskDrawer(task)">
+
+              <p class="text-sm font-semibold text-gray-800 leading-tight">
+                {{ task.title }}
+              </p>
+
+              @if (task.description) {
+                <p class="text-xs text-gray-500 line-clamp-2">
+                  {{ task.description }}
+                </p>
+              }
+
+              <span [class]="'text-xs px-2.5 py-1 rounded-full font-medium ' + getPriorityClass(task.priority)">
+                {{ TaskPriorityLabels[task.priority] }}
+              </span>
+
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>👤 {{ getMemberName(task.assignedToUserId) }}</span>
+                @if (task.dueDate) {
+                  <span>📅 {{ task.dueDate | date:'MMM d' }}</span>
+                }
+              </div>
+
+              @if (canManage()) {
+                <div
+                  class="flex items-center gap-2 pt-1 border-t border-gray-100"
+                  (click)="$event.stopPropagation()">
+                  <button (click)="openEditModal(task)"
+                    class="flex-1 text-xs text-blue-600 hover:text-blue-800 font-medium py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                    Edit
+                  </button>
+                  @if (canDelete()) {
+                    <button (click)="confirmDelete(task.id)"
+                      class="flex-1 text-xs text-red-500 hover:text-red-700 font-medium py-1 rounded-lg hover:bg-red-50 transition-colors">
+                      Delete
+                    </button>
+                  }
+                </div>
+              }
+
+            </div>
+          } @empty {
+            <p class="text-xs text-gray-400 text-center py-6">No tasks</p>
+          }
+
+        </div>
+      }
+    </div>
+
+    @if (tasks().length === 0) {
+      <div class="text-center py-16">
+        <p class="text-4xl mb-3">📋</p>
+        <p class="text-lg font-medium text-gray-600">No tasks yet</p>
+        @if (canManage()) {
+          <p class="text-sm text-gray-400 mt-1">Click "New Task" to get started.</p>
+        }
+      </div>
+    }
+
+  }
+
+</div>
+
+@if (showTaskModal()) {
+  <app-task-form-modal
+    [projectId]="projectId"
+    [taskToEdit]="taskToEdit()"
+    [members]="members()"
+    (modalClosed)="closeModal()"
+    (taskSaved)="onTaskSaved()">
+  </app-task-form-modal>
+}
+
+@if (taskToDeleteId()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4">
+      <h3 class="text-lg font-bold text-gray-800">Delete Task?</h3>
+      <p class="text-sm text-gray-500">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button (click)="cancelDelete()"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+        <button (click)="executeDelete()" [disabled]="isDeleting()"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors">
+          {{ isDeleting() ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (selectedTask()) {
+  <div class="fixed inset-0 z-40 bg-black/30" (click)="closeTaskDrawer()"></div>
+
+  <div class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
+
+    <div class="flex items-start justify-between p-6 border-b border-gray-100">
+      <div class="flex-1 pr-4">
+        <p class="text-xs text-gray-400 mb-1">Task</p>
+        <h2 class="text-lg font-bold text-gray-900 leading-tight">
+          {{ selectedTask()!.title }}
+        </h2>
+        @if (selectedTask()!.description) {
+          <p class="text-sm text-gray-500 mt-1">{{ selectedTask()!.description }}</p>
+        }
+      </div>
+      <button (click)="closeTaskDrawer()"
+        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
+        ✕
+      </button>
+    </div>
+
+    <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
+      <span [class]="'text-xs px-2.5 py-1 rounded-full font-medium ' + getStatusClass(selectedTask()!.status)">
+        {{ TasksStatusLabels[selectedTask()!.status] }}
+      </span>
+      <span [class]="'text-xs px-2.5 py-1 rounded-full font-medium ' + getPriorityClass(selectedTask()!.priority)">
+        {{ TaskPriorityLabels[selectedTask()!.priority] }}
+      </span>
+      <span class="text-xs text-gray-500">
+        👤 {{ getMemberName(selectedTask()!.assignedToUserId) }}
+      </span>
+      @if (selectedTask()!.dueDate) {
+        <span class="text-xs text-gray-500">
+          📅 {{ selectedTask()!.dueDate | date:'MMM d, y' }}
+        </span>
+      }
+    </div>
+
+    @if (canManage()) {
+      <div class="px-6 py-3 border-b border-gray-100 flex gap-2">
+        <button
+          (click)="openEditModal(selectedTask()!); closeTaskDrawer()"
+          class="flex-1 px-4 py-2 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors">
+          ✏️ Edit Task
+        </button>
+        @if (canDelete()) {
+          <button
+            (click)="confirmDelete(selectedTask()!.id); closeTaskDrawer()"
+            class="flex-1 px-4 py-2 rounded-xl bg-red-50 text-red-500 text-xs font-semibold hover:bg-red-100 transition-colors">
+            🗑️ Delete Task
+          </button>
+        }
+      </div>
+    }
+
+    <div class="flex-1 overflow-y-auto p-6">
+      <app-comments-section [taskId]="selectedTask()!.id" />
+    </div>
+
+  </div>
+}

@@ -1,0 +1,90 @@
+@if (isLoading()) {
+  <p class="loading-text">Loading...</p>
+} @else if (errorMessage() && !team()) {
+  <p class="empty-text">{{ errorMessage() }}</p>
+} @else if (team()) {
+  <div class="team-details-page">
+    <a routerLink="/dashboard/teams" class="back-link">← Back to Teams</a>
+
+    <div class="page-header">
+      <div>
+        <h1>{{ team()!.name }}</h1>
+        @if (team()!.description) {
+          <p class="team-desc">{{ team()!.description }}</p>
+        }
+      </div>
+    </div>
+
+    <section class="members-section">
+      <h2>Members ({{ members().length }})</h2>
+
+      @if (members().length === 0) {
+        <p class="empty-text">No members yet.</p>
+      } @else {
+        <ul class="members-list">
+          @for (member of members(); track member.userId) {
+            <li class="member-item">
+              <span class="member-name">
+                <!-- لو canManageMembers بنعرض الاسم/الإيميل، غيره بنعرض الـ Id فقط (مفيش endpoint يسمح للـ Member العادي يجيب بيانات زمايله) -->
+                {{ canManageMembers ? getUserDisplay(member.userId) : member.userId }}
+              </span>
+              <span class="member-joined">Joined {{ member.joinedAt | date: 'mediumDate' }}</span>
+
+              @if (canManageMembers) {
+                <button class="icon-btn danger" (click)="removeMember(member.userId)" aria-label="Remove">🗑</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (canManageMembers) {
+        <div class="add-member-box">
+          @if (availableUsers.length > 0) {
+            <select [value]="selectedUserId()" (change)="selectedUserId.set($any($event.target).value)">
+              <option value="" disabled selected>Select a user...</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.id">{{ user.fullName }} ({{ user.email }})</option>
+              }
+            </select>
+            <button class="btn-primary" [disabled]="!selectedUserId()" (click)="addMember()">Add Member</button>
+          } @else {
+            <p class="empty-text">No more users available to add.</p>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="members-section projects-section">
+      <div class="section-header">
+        <h2>Projects ({{ projects().length }})</h2>
+        @if (canManageMembers) {
+          <button class="btn-primary-sm" (click)="openCreateProjectModal()">+ New Project</button>
+        }
+      </div>
+
+      @if (projects().length === 0) {
+        <p class="empty-text">No projects yet for this team.</p>
+      } @else {
+        <ul class="members-list">
+          @for (project of projects(); track project.id) {
+            <li class="member-item">
+              <a [routerLink]="['/dashboard/projects', project.id]" class="member-name">{{ project.name }}</a>
+              @if (canManageMembers) {
+                <button class="icon-btn" (click)="openEditProjectModal(project)" aria-label="Edit">✎</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (isProjectModalOpen()) {
+      <app-project-form-modal
+        [teamId]="team()!.id"
+        [project]="editingProject()"
+        (close)="closeProjectModal()"
+      ></app-project-form-modal>
+    }
+  </div>
+}
